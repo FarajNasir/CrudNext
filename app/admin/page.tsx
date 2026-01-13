@@ -6,10 +6,15 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);
 
-  if (!session || session.user.role !== "ADMIN") {
-    redirect("/dashboard"); // Only admins allowed
+    // 🔐 Guard: not logged in
+  if (!session || !session.user) {
+    redirect("/login");
   }
 
+  // 🔐 Guard: not admin
+  if (session.user.role !== "ADMIN") {
+    redirect("/dashboard");
+  }
   return (
     <AdminPanel
       sessionUserEmail={session.user.email}
