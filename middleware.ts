@@ -1,17 +1,29 @@
-import { withAuth } from "next-auth/middleware";
+import { NextResponse, type NextRequest } from "next/server";
+import { createServerClient } from "@supabase/ssr";
 
-export default withAuth({
-  callbacks: {
-    authorized: ({ token, req }) => {
-      // Admin route
-      if (req.nextUrl.pathname.startsWith("/admin")) {
-        return token?.role === "ADMIN";
-      }
-      // Dashboard / other protected routes
-      return !!token;
-    },
-  },
-});
+export async function middleware(req: NextRequest) {
+  let res = NextResponse.next();
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll();
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            res.cookies.set(name, value, options);
+          });
+        },
+      },
+    }
+  );
+
+  await supabase.auth.getUser();
+  return res;
+}
 
 export const config = {
   matcher: ["/dashboard/:path*", "/admin/:path*"],

@@ -1,57 +1,99 @@
 "use client";
 
 import { useState } from "react";
+import { supabaseClient } from "@/lib/supabaseClient";
 import { useRouter } from "next/navigation";
 
-export default function Register() {
+export default function RegisterPage() {
   const router = useRouter();
-  const [message, setMessage] = useState("");
 
- const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-  e.preventDefault();
-  const target = e.target as typeof e.target & {
-    name: { value: string };
-    email: { value: string };
-    password: { value: string };
-  };
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  try {
-    const res = await fetch("/api/users", {
-      method: "POST",
-      body: JSON.stringify({
-        name: target.name.value,
-        email: target.email.value,
-        password: target.password.value,
-      }),
-      headers: { "Content-Type": "application/json" },
+  const register = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const { error } = await supabaseClient.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name },
+      },
     });
 
-    let data: any = {};
-    const contentType = res.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
-      data = await res.json();
-    }
+    setLoading(false);
 
-    if (res.ok) {
-      setMessage("Registered successfully!");
-      setTimeout(() => router.push("/login"), 1000);
-    } else {
-      setMessage(data.message || "Registration failed");
-    }
-  } catch (err) {
-    console.error("Network or JSON error:", err);
-    setMessage("Network error");
-  }
-};
+    if (error) return alert(error.message);
 
+    alert("Registered successfully! Please check your email to verify.");
+    router.push("/login");
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-md mx-auto p-4">
-      <input name="name" placeholder="Name" className="border p-2 w-full mb-2" required />
-      <input name="email" placeholder="Email" className="border p-2 w-full mb-2" required />
-      <input name="password" type="password" placeholder="Password" className="border p-2 w-full mb-2" required />
-      <button type="submit" className="bg-blue-600 text-white p-2 w-full">Register</button>
-      <p>{message}</p>
-    </form>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-black via-gray-900 to-gray-950 px-4">
+      <div className="w-full max-w-md bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl p-8">
+        <h1 className="text-3xl font-bold text-white mb-2">Create Account ✨</h1>
+        <p className="text-gray-400 mb-6">
+          Register to start using your dashboard
+        </p>
+
+        <form onSubmit={register} className="space-y-4">
+          <div>
+            <label className="text-gray-300 text-sm">Name</label>
+            <input
+              className="mt-1 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30"
+              placeholder="Enter your name"
+              value={name}
+              required
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="text-gray-300 text-sm">Email</label>
+            <input
+              className="mt-1 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30"
+              placeholder="Enter your email"
+              type="email"
+              value={email}
+              required
+              onChange={(e) => setEmail(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <label className="text-gray-300 text-sm">Password</label>
+            <input
+              className="mt-1 w-full px-4 py-3 rounded-xl bg-white/10 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white/30"
+              placeholder="Create a password"
+              type="password"
+              value={password}
+              required
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+
+          <button
+            disabled={loading}
+            className="w-full py-3 rounded-xl bg-white text-black font-semibold hover:bg-gray-200 transition disabled:opacity-50"
+          >
+            {loading ? "Creating..." : "Register"}
+          </button>
+        </form>
+
+        <p className="text-gray-400 text-sm mt-6 text-center">
+          Already have an account?{" "}
+          <span
+            className="text-white font-semibold cursor-pointer hover:underline"
+            onClick={() => router.push("/login")}
+          >
+            Login
+          </span>
+        </p>
+      </div>
+    </div>
   );
 }
