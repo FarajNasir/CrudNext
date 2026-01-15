@@ -35,7 +35,7 @@ export async function PUT(req: Request) {
       id: authData.user.id,
       name: body.name ?? "",
       bio: body.bio ?? "",
-      role: "USER",
+      // role: "USER",
     })
     .select()
     .single();
