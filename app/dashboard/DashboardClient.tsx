@@ -172,10 +172,10 @@ export default function DashboardClient({ userEmail }: { userEmail: string }) {
 
   // ✅ Logout (cookies)
   const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.replace("/login");
-    router.refresh();
-  };
+  await fetch("/api/auth/logout", { method: "POST" });
+  router.push("/login");
+};
+
 
   const doneCount = todos.filter((t) => t.is_done).length;
 
