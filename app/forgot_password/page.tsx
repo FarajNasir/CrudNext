@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import axios from "axios";
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -12,19 +13,16 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setLoading(true);
 
-    const res = await fetch("/api/auth/forgot_password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
+    try {
+      const res = await axios.post("/api/auth/forgot_password", { email });
 
-    const data = await res.json();
-    setLoading(false);
-
-    if (!res.ok) return alert(data.error);
-
-    alert("✅ Reset link sent! Please check your email.");
-    router.push("/login");
+      alert("✅ Reset link sent! Please check your email.");
+      router.push("/login");
+    } catch (err: any) {
+      alert(err?.response?.data?.error || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -35,7 +33,7 @@ export default function ForgotPasswordPage() {
         </h1>
 
         <p className="text-zinc-400 mb-6">
-          Email enter karo, reset link aa jayega.
+          Enter your email and we will send you a reset link.
         </p>
 
         <form onSubmit={sendResetLink} className="space-y-4">

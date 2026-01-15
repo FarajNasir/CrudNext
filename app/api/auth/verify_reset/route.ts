@@ -3,28 +3,21 @@ import { supabaseServer } from "@/lib/supabaseServer";
 
 export async function POST(req: Request) {
   try {
-    const { password } = await req.json();
+    const { token_hash } = await req.json();
 
-    if (!password || password.length < 6) {
+    if (!token_hash) {
       return NextResponse.json(
-        { error: "Password must be at least 6 characters" },
+        { error: "token_hash is required" },
         { status: 400 }
       );
     }
 
     const supabase = await supabaseServer();
 
-    // ✅ user must have session (set by verify_reset API)
-    const { data: userData } = await supabase.auth.getUser();
-
-    if (!userData.user) {
-      return NextResponse.json(
-        { error: "Reset session missing. Please open reset link again." },
-        { status: 401 }
-      );
-    }
-
-    const { error } = await supabase.auth.updateUser({ password });
+    const { data, error } = await supabase.auth.verifyOtp({
+      type: "recovery",
+      token_hash,
+    });
 
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 400 });
@@ -32,7 +25,8 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       success: true,
-      message: "Password updated successfully",
+      message: "Reset link verified successfully",
+      session: data.session ? true : false,
     });
   } catch (err: any) {
     return NextResponse.json(

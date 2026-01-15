@@ -1,77 +1,78 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { supabaseClient } from "@/lib/supabaseClient";
 import { useRouter, useSearchParams } from "next/navigation";
+import axios from "axios";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const tokenHash = searchParams.get("token_hash");
-  const type = searchParams.get("type"); // recovery
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  // ✅ Verify token hash and create session
+  // ✅ Verify reset token via API (not UI supabase call)
   useEffect(() => {
     const verify = async () => {
-      if (!tokenHash || !type) {
-        alert("Invalid reset link. Please request a new one.");
+      try {
+        if (!tokenHash) {
+          alert("Invalid reset link. Please request again.");
+          router.push("/login");
+          return;
+        }
+
+        await axios.post("/api/auth/verify_reset", {
+          token_hash: tokenHash,
+        });
+
+        setChecking(false);
+      } catch (err: any) {
+        alert(err?.response?.data?.error || "Reset link verification failed");
         router.push("/login");
-        return;
       }
-
-      const { error } = await supabaseClient.auth.verifyOtp({
-        token_hash: tokenHash,
-        type: "recovery",
-      });
-
-      if (error) {
-        alert(error.message);
-        router.push("/login");
-        return;
-      }
-
-      setChecking(false);
     };
 
     verify();
-  }, [tokenHash, type, router]);
+  }, [tokenHash, router]);
 
   const updatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!password || password.length < 6) {
-      return alert("Password must be at least 6 characters.");
+      alert("Password must be at least 6 characters");
+      return;
     }
 
     if (password !== confirmPassword) {
-      return alert("Passwords do not match.");
+      alert("Passwords do not match");
+      return;
     }
 
     setLoading(true);
 
-    const { error } = await supabaseClient.auth.updateUser({
-      password,
-    });
+    try {
+      await axios.post("/api/auth/reset_password", { password });
 
-    setLoading(false);
-
-    if (error) return alert(error.message);
-
-    alert("✅ Password updated successfully. Please login again.");
-    router.push("/login");
+      alert("✅ Password updated successfully! Please login again.");
+      router.push("/login");
+    } catch (err: any) {
+      alert(err?.response?.data?.error || "Something went wrong");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (checking) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-white">
-        Checking reset link...
+      <div className="min-h-screen bg-gradient-to-br from-black via-zinc-950 to-zinc-900 flex items-center justify-center px-4">
+        <p className="text-white text-lg font-semibold">
+          Verifying reset link...
+        </p>
       </div>
     );
   }
@@ -99,7 +100,7 @@ export default function ResetPasswordPage() {
 
           <input
             className="w-full rounded-xl border border-white/10 bg-black/40 p-3 text-white placeholder:text-zinc-500 outline-none focus:ring-2 focus:ring-green-500"
-            placeholder="Confirm New Password"
+            placeholder="Confirm Password"
             type="password"
             value={confirmPassword}
             required
